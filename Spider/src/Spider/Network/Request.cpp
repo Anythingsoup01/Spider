@@ -1,5 +1,5 @@
-#include "spch.h"
 #include "Request.h"
+#include "spch.h"
 
 namespace Spider {
 
@@ -27,4 +27,19 @@ Request ParseRequest(const std::string_view &requestStr) {
   return Request::Unknown;
 }
 
+std::string RequestToString(const Request &request) {
+  switch (request) {
+    case Request::Get:      return "GET";
+    case Request::Post:     return "POST";
+    case Request::Put:      return "PUT";
+    case Request::Delete:   return "DELETE";
+    case Request::Head:     return "HEAD";
+    case Request::Options:  return "OPTIONS";
+    case Request::Patch:    return "PATCH";
+    case Request::Trace:    return "TRACE";
+    case Request::Connect:  return "CONNECT";
+    default:  return "UNKNOWN";
+  }
 }
+
+} // namespace Spider

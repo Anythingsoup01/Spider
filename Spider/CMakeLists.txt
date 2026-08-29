@@ -1,5 +1,6 @@
 set(SRCS
     "src/Spider/Network/Server.cpp"
+    "src/Spider/Network/Request.cpp"
 )
 add_library(spider STATIC ${SRCS})
 set_property(TARGET spider PROPERTY CXX_STANDARD 23)

@@ -17,4 +17,6 @@ enum class Request : uint8_t {
 
 Request ParseRequest(const std::string_view &requestStr);
 
+std::string RequestToString(const Request &request);
+
 }
