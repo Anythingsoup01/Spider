@@ -1,30 +1,22 @@
-set(SRCS
-    "src/Spider/Network/Server.cpp"
-    "src/Spider/Network/Request.cpp"
-)
-add_library(spider STATIC ${SRCS})
+add_library(spider STATIC)
+
 set_property(TARGET spider PROPERTY CXX_STANDARD 23)
+target_sources(spider PRIVATE
+src/Spider/Network/Request.cpp
+src/Spider/Network/Server.cpp
+src/Spider/Format/Header.cpp
+)
 
 target_precompile_headers(spider PUBLIC src/spch.h)
+
 target_include_directories(spider PRIVATE
-    "src"
+src
 )
 
 target_compile_options(spider PRIVATE
-    -Wall
-    -Werror
+-Wall
+-Werror
 )
 
-if(CMAKE_BUILD_TYPE STREQUAL Debug)
-target_compile_options(spider PRIVATE
-    -O0
-    -g
-)
 
-endif(CMAKE_BUILD_TYPE STREQUAL Debug)
-if(CMAKE_BUILD_TYPE STREQUAL Release)
-target_compile_options(spider PRIVATE
-    -O2
-)
 
-endif(CMAKE_BUILD_TYPE STREQUAL Release)

@@ -1,7 +1,9 @@
 #pragma once
 
-#include "Request.h"
 #include <nlohmann/json.hpp>
+
+#include "Request.h"
+#include "Spider/Format/Header.h"
 
 namespace Spider {
 
@@ -24,6 +26,10 @@ public:
 
   // Adds a route to the server for web requests
   bool AddRoute(const Request &request, const std::string_view &route, const RouteFunc &func);
+
+  // Sets the header for the next loaded file / payload to tell Spider
+  // if there was an error and how to properly load the data
+  void SetHeader(const ResponseCode &code, const ResponseType &type);
 private:
   // Reads the entire web request until the end "CRCR" (\r\n\r\n)
   std::string ReadFullRequest(const int &fd);
@@ -38,6 +44,8 @@ private:
 private:
   int m_FD = -1;
   bool m_IsValid = false;
+
+  FormatHeader m_Header;
 
   std::unordered_map<uint64_t, Route> m_Routes;
 };

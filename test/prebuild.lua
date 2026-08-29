@@ -9,7 +9,7 @@ Project = {
   },
 
   includedirs = {
-    "${WORKSPACEDIR}Spider/src",
+    "${WORKSPACEDIR}/Spider/src",
   },
 
   flags = {
@@ -18,7 +18,6 @@ Project = {
   },
 
   filters = {
-    -- Debug Config
     {
       name = "configurations:Debug",
       flags = {
@@ -26,7 +25,6 @@ Project = {
         "-g"
       },
     },
-    -- Release Config
     {
       name = "configurations:Release",
       flags = {

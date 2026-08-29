@@ -100,6 +100,11 @@ bool Server::AddRoute(const Request &request, const std::string_view &route, con
   return true;
 }
 
+void Server::SetHeader(const ResponseCode &code, const ResponseType &type) {
+  m_Header.SetResponseCode(code);
+  m_Header.SetResponseType(type);
+}
+
 std::string Server::ReadFullRequest(const int &fd) {
   std::string full_request;
   char buffer[4096];
@@ -135,6 +140,8 @@ std::string Server::ReadFullRequest(const int &fd) {
 void Server::ProcessRequest(const int &fd) {
   std::string requestStr = ReadFullRequest(fd);
 
+  if (requestStr.length() <= 0) return;
+
   size_t spacePos = requestStr.find_first_of(" ");
   std::string requestTypeStr = requestStr.substr(0, spacePos);
 
@@ -144,7 +151,10 @@ void Server::ProcessRequest(const int &fd) {
 
   uint64_t hash = Util::GenerateFNVHash(requestTypeStr + routeStr);
   if (!m_Routes.contains(hash)) {
-    std::string response = "HTTP/1.1 404 Page not found";
+    std::string message = "Page Not Found";
+    SetHeader(ResponseCode::NotFound, ResponseType::TextPlain);
+    m_Header.SetResponseLength(message.length());
+    std::string response = "HTTP/1.1 " + m_Header.GetHeader() + message;
     send(fd, response.c_str(), response.size(), 0);
     close(fd);
     return;
@@ -152,10 +162,12 @@ void Server::ProcessRequest(const int &fd) {
 
   currPos = requestStr.find("\r\n\r\n", spacePos); // This always exists
   std::string jsonData = requestStr.substr(currPos + 4);
-  nlohmann::json data = nlohmann::json::parse(jsonData);
+  nlohmann::json data = jsonData.empty() ? nlohmann::json() : nlohmann::json::parse(jsonData);
 
   std::string message = m_Routes[hash].Method(jsonData);
-  std::string response = "HTTP/1.1 200 OK\r\nContent-Length: " + std::to_string(message.length()) + "\r\n\r\n";
+  m_Header.SetResponseLength(message.size());
+
+  std::string response = "HTTP/1.1 " + m_Header.GetHeader() + message;
 
   send(fd, response.c_str(), response.size(), 0);
   close(fd);

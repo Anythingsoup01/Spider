@@ -2,4 +2,5 @@
 prebuild
 
 ## Directories
+.cache/
 build/
