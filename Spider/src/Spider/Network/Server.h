@@ -39,8 +39,11 @@ public:
   // if there was an error and how to properly load the data
   void SetHeader(const ResponseCode &code, const ResponseType &type);
 
-  // Sets the directory for the resource folder for easy file hosting
-  void SetResourceDirectory(const std::filesystem::path &path) { m_ResourceDirectory = path; }
+  // Sets the directory for the resource folder for easy file hosting.
+  //  If loadAllFiles is true then it will recursively loop over the resource
+  //  directory and host the files. This will also locate the index.html
+  //  file and set it as the root route '/'
+  void SetResourceDirectory(const std::filesystem::path &path, const bool &loadAllFiles);
 private:
   // Reads the entire web request until the end
   std::string ReadFullRequest(const int &fd);

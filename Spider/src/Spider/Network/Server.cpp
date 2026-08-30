@@ -171,6 +171,31 @@ bool Server::HostFile(const std::filesystem::path &filePath, const std::string &
   return true;
 }
 
+void Server::SetResourceDirectory(const std::filesystem::path &path, const bool &loadAllFiles) {
+  if (m_ResourceDirectory == path || path.empty())
+    return;
+
+  m_ResourceDirectory = path;
+  m_Routes.clear();
+  
+  if (!loadAllFiles || !std::filesystem::exists(m_ResourceDirectory))
+    return;
+
+  for (const auto &entry : std::filesystem::recursive_directory_iterator(m_ResourceDirectory)) {
+    if (entry.is_directory())
+      continue;
+
+    std::filesystem::path relPath = std::filesystem::relative(entry.path(), m_ResourceDirectory);
+
+    if (relPath.filename() == "index.html") { // Root
+      HostFile(relPath, "/");
+    } else {
+      HostFile(relPath);
+    }
+  }
+}
+
+
 void Server::SetHeader(const ResponseCode &code, const ResponseType &type) {
   m_Header.SetResponseCode(code);
   m_Header.SetResponseType(type);

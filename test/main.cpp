@@ -20,10 +20,7 @@ std::string SubmissionRoute(const nlohmann::json &data) {
 }
 
 int main(void) {
-  s_Server.SetResourceDirectory("resources");
-  s_Server.HostFile("index.html", "/");
-  s_Server.HostFile("style.css");
-  s_Server.HostFile("script.js");
+  s_Server.SetResourceDirectory("resources", true);
   s_Server.AddRoute(Spider::Request::Post, "/submission", SubmissionRoute);
   while (s_Server.IsValid()) {
     s_Server.Update();
