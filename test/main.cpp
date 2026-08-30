@@ -23,7 +23,15 @@ std::string JScriptRoute(const nlohmann::json &data) {
 std::string SubmissionRoute(const nlohmann::json &data) {
   s_Server.SetHeader(Spider::ResponseCode::OK, Spider::ResponseType::ApplicationJson);
 
-  return std::string();
+  std::string user = "NULL";
+  if (data.contains("username")) {
+    user = data["username"];
+  }
+
+  std::string out = "{\"message\": \"" + user + "\"}";
+
+  return out;
+
 }
 
 int main(void) {

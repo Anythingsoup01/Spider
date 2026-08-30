@@ -162,9 +162,11 @@ void Server::ProcessRequest(const int &fd) {
 
   currPos = requestStr.find("\r\n\r\n", spacePos); // This always exists
   std::string jsonData = requestStr.substr(currPos + 4);
-  nlohmann::json data = jsonData.empty() ? nlohmann::json() : nlohmann::json::parse(jsonData);
+  nlohmann::json data = nlohmann::json();
+  if (!jsonData.empty())
+    data = nlohmann::json::parse(jsonData);
 
-  std::string message = m_Routes[hash].Method(jsonData);
+  std::string message = m_Routes[hash].Method(data);
   m_Header.SetResponseLength(message.size());
 
   std::string response = "HTTP/1.1 " + m_Header.GetHeader() + message;
