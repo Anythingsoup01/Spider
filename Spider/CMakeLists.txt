@@ -4,6 +4,7 @@ set_property(TARGET spider PROPERTY CXX_STANDARD 23)
 target_sources(spider PRIVATE
 src/Spider/File/FileReader.cpp
 src/Spider/Network/Request.cpp
+src/Spider/Network/GenericRoutes.cpp
 src/Spider/Network/Server.cpp
 src/Spider/Format/Header.cpp
 )

@@ -1,20 +1,21 @@
 #include "spch.h"
 #include "Server.h"
 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <unistd.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <netinet/in.h>
 #include <poll.h>
+#include <sys/socket.h>
 #include <unistd.h>
+
+#include "GenericRoutes.h"
 
 namespace Spider {
 
 namespace Util {
 
 uint64_t GenerateFNVHash(const std::string_view &str) {
-  uint64_t hash = 0xcbf29ce484222325; // FNV offset basis
+  uint64_t hash = 0xcbf29ce484222325;      // FNV offset basis
   uint64_t fnv_prime = 0x00000100000001B3; // FNV prime
 
   for (char c : str) {
@@ -24,9 +25,10 @@ uint64_t GenerateFNVHash(const std::string_view &str) {
   return hash;
 }
 
-}
+} // namespace Util
 
-Server::Server(const uint16_t &port) {
+Server::Server(const uint16_t &port)
+    : m_ResourceDirectory(std::filesystem::current_path()) {
   // Create the socket
   m_FD = socket(AF_INET, SOCK_STREAM, 0);
   if (m_FD < 0) { // Server Failed to Create!
@@ -75,15 +77,16 @@ void Server::Update() {
   if (ret > 0 && (pfd.revents & POLLIN)) {
     int client_fd = accept(m_FD, nullptr, nullptr);
     if (client_fd >= 0) {
-      //int flags = fcntl(client_fd, F_GETFL, 0);
-      //fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
+      // int flags = fcntl(client_fd, F_GETFL, 0);
+      // fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
 
       ProcessRequest(client_fd);
     }
   }
 }
 
-bool Server::AddRoute(const Request &request, const std::string_view &route, const RouteFunc &func) {
+bool Server::AddRoute(const Request &request, const std::string_view &route,
+                      const RouteFunc &func) {
   std::string stringToHash = RequestToString(request) + route.data();
   uint64_t hash = Util::GenerateFNVHash(stringToHash);
 
@@ -93,8 +96,76 @@ bool Server::AddRoute(const Request &request, const std::string_view &route, con
   Route rt = {
     .RequestType = request,
     .RouteString = route.data(),
-    .Method = func
+    .Method = func,
+    .GenericMethod = nullptr
   };
+
+  m_Routes.emplace(std::pair<uint64_t, Route>(hash, rt));
+  return true;
+}
+
+bool Server::HostFile(const std::filesystem::path &filePath, const std::string &routeOverride) {
+  std::string route = "/" + filePath.generic_string();
+  if (!routeOverride.empty()) {
+    route = routeOverride;
+  }
+  std::string stringToHash = RequestToString(Request::Get) + route.data();
+  uint64_t hash = Util::GenerateFNVHash(stringToHash);
+
+  if (m_Routes.contains(hash)) // Request+Route already exists
+    return false;
+
+  Route rt;
+  rt.RequestType = Request::Get;
+  rt.RouteString = route;
+  rt.Method = nullptr;
+  rt.FilePath = m_ResourceDirectory / filePath;
+
+  std::string extension = filePath.extension().string();
+  if (extension == ".json") {
+    rt.GenericMethod = GenericApplicationJson;
+  } else if (extension == ".xml") {
+    rt.GenericMethod = GenericApplicationXml;
+  } else if (extension == ".urlencoded") {
+    rt.GenericMethod = GenericApplicationFormUrlEncoded;
+  } else if (extension == ".bin" || extension == ".exe" ||
+             extension == ".dat") {
+    rt.GenericMethod = GenericApplicationOctetStream;
+  } else if (extension == ".pdf") {
+    rt.GenericMethod = GenericApplicationPdf;
+  } else if (extension == ".zip") {
+    rt.GenericMethod = GenericApplicationZip;
+  } else if (extension == ".js") {
+    rt.GenericMethod = GenericApplicationJavascript;
+  } else if (extension == ".txt") {
+    rt.GenericMethod = GenericTextPlain;
+  } else if (extension == ".html" || extension == ".htm") {
+    rt.GenericMethod = GenericTextHtml;
+  } else if (extension == ".css") {
+    rt.GenericMethod = GenericTextCss;
+  } else if (extension == ".csv") {
+    rt.GenericMethod = GenericTextCsv;
+  } else if (extension == ".png") {
+    rt.GenericMethod = GenericImagePng;
+  } else if (extension == ".jpg" || extension == ".jpeg") {
+    rt.GenericMethod = GenericImageJpeg;
+  } else if (extension == ".gif") {
+    rt.GenericMethod = GenericImageGif;
+  } else if (extension == ".svg") {
+    rt.GenericMethod = GenericImageSvg;
+  } else if (extension == ".webp") {
+    rt.GenericMethod = GenericImageWebp;
+  } else if (extension == ".ico") {
+    rt.GenericMethod = GenericImageIco;
+  } else if (extension == ".mp3") {
+    rt.GenericMethod = GenericAudioMpeg;
+  } else if (extension == ".ogg") {
+    rt.GenericMethod = GenericAudioOgg;
+  } else if (extension == ".mp4") {
+    rt.GenericMethod = GenericVideoMp4;
+  } else if (extension == ".webm") {
+    rt.GenericMethod = GenericVideoWebm;
+  }
 
   m_Routes.emplace(std::pair<uint64_t, Route>(hash, rt));
   return true;
@@ -111,7 +182,8 @@ std::string Server::ReadFullRequest(const int &fd) {
   ssize_t bytes_received;
 
   bytes_received = read(fd, buffer, sizeof(buffer));
-  if (bytes_received <= 0) return "";
+  if (bytes_received <= 0)
+    return "";
 
   full_request.append(buffer, bytes_received);
 
@@ -123,12 +195,14 @@ std::string Server::ReadFullRequest(const int &fd) {
     content_length = std::stoi(full_request.substr(cl_pos + 16));
   }
 
-  size_t body_already_read = (header_end != std::string::npos) 
-    ? (full_request.length() - (header_end + 4)) : 0;
+  size_t body_already_read = (header_end != std::string::npos)
+                                 ? (full_request.length() - (header_end + 4))
+                                 : 0;
 
   while (body_already_read < content_length) {
     bytes_received = read(fd, buffer, sizeof(buffer));
-    if (bytes_received <= 0) break;
+    if (bytes_received <= 0)
+      break;
 
     full_request.append(buffer, bytes_received);
     body_already_read += bytes_received;
@@ -140,7 +214,8 @@ std::string Server::ReadFullRequest(const int &fd) {
 void Server::ProcessRequest(const int &fd) {
   std::string requestStr = ReadFullRequest(fd);
 
-  if (requestStr.length() <= 0) return;
+  if (requestStr.length() <= 0)
+    return;
 
   size_t spacePos = requestStr.find_first_of(" ");
   std::string requestTypeStr = requestStr.substr(0, spacePos);
@@ -166,7 +241,12 @@ void Server::ProcessRequest(const int &fd) {
   if (!jsonData.empty())
     data = nlohmann::json::parse(jsonData);
 
-  std::string message = m_Routes[hash].Method(data);
+  std::string message;
+  if (m_Routes[hash].Method) {
+    message = m_Routes[hash].Method(data);
+  } else {
+    message = m_Routes[hash].GenericMethod(this, m_Routes[hash].FilePath);
+  }
   m_Header.SetResponseLength(message.size());
 
   std::string response = "HTTP/1.1 " + m_Header.GetHeader() + message;
@@ -175,4 +255,4 @@ void Server::ProcessRequest(const int &fd) {
   close(fd);
 }
 
-}
+} // namespace Spider
