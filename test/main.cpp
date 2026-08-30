@@ -1,41 +1,37 @@
 #include "Spider/Format/Header.h"
 #include "Spider/Network/Server.h"
+#include "Spider/File/FileReader.h"
 
-class test {
-public:
-  test() {
-    // When using a server inside a class 'this' must be passed into the lambda
-    m_Server.AddRoute(Spider::Request::Get, "/",
-      [this](const nlohmann::json &data) -> std::string {
-      m_Server.SetHeader(Spider::ResponseCode::OK, Spider::ResponseType::TextPlain);
+// When using a server outside a class, it must be static to set the headers
+static Spider::Server s_Server(8080);
 
-      return "This text is plain!";
-    });
-  }
+std::string RootRoute(const nlohmann::json &data) {
+  s_Server.SetHeader(Spider::ResponseCode::OK, Spider::ResponseType::TextHtml);
+  return Spider::ReadFile("resources/index.html");
+}
 
-  ~test() = default;
+std::string StyleRoute(const nlohmann::json &data) {
+  s_Server.SetHeader(Spider::ResponseCode::OK, Spider::ResponseType::TextCss);
+  return Spider::ReadFile("resources/style.css");
+}
 
-  void Update() {
-    if (m_Server.IsValid())
-      m_Server.Update();
-  }
+std::string JScriptRoute(const nlohmann::json &data) {
+  s_Server.SetHeader(Spider::ResponseCode::OK, Spider::ResponseType::ApplicationJavascript);
+  return Spider::ReadFile("resources/script.js");
+}
 
-private:
-  Spider::Server m_Server = Spider::Server(8080);
-};
+std::string SubmissionRoute(const nlohmann::json &data) {
+  s_Server.SetHeader(Spider::ResponseCode::OK, Spider::ResponseType::ApplicationJson);
+
+  return std::string();
+}
 
 int main(void) {
-  // When using a server outside a class, it must be static to set the headers
-  static Spider::Server server = Spider::Server(8080);
-  server.AddRoute(Spider::Request::Get, "/",
-                  [](const nlohmann::json &data) -> std::string {
-                    server.SetHeader(Spider::ResponseCode::OK,
-                                     Spider::ResponseType::TextPlain);
-
-                    return "This text is plain!";
-                  });
-
-  while (server.IsValid()) {
-    server.Update();
+  s_Server.AddRoute(Spider::Request::Get, "/", RootRoute);
+  s_Server.AddRoute(Spider::Request::Get, "/style.css", StyleRoute);
+  s_Server.AddRoute(Spider::Request::Get, "/script.js", JScriptRoute);
+  s_Server.AddRoute(Spider::Request::Post, "/submission", SubmissionRoute);
+  while (s_Server.IsValid()) {
+    s_Server.Update();
   }
 }

@@ -2,6 +2,7 @@
 
 ## What Is It?
 
+* An explicit web server, meaning the only endpoints available are what you set
 * A plug-and-play module for performing web requests (WIP)
 * A simple to use web server for hosting files (WIP)
 
