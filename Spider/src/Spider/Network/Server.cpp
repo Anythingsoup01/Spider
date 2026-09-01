@@ -38,7 +38,7 @@ Server::Server(const uint16_t &port)
 
   // Socket Options
   int opt = 1;
-  setsockopt(m_FD, SOL_SOCKET, SO_REUSEADDR, (const char *)&opt, sizeof(opt));
+  setsockopt(m_FD, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, (const char *)&opt, sizeof(opt));
 
   int flags = fcntl(m_FD, F_GETFL, 0);
   fcntl(m_FD, F_SETFL, flags | O_NONBLOCK); // Sets the socket to non blocking
