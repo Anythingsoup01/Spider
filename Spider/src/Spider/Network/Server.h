@@ -30,6 +30,9 @@ public:
   // Adds a route to the server for web requests
   bool AddRoute(const Request &request, const std::string_view &route, const RouteFunc &func);
 
+  // Points a new route to an already exising route
+  bool AddRoute(const Request &request, const std::string_view &existing_route, const std::string_view &new_route);
+
   // Locates the given file in the resource directory and hosts it,
   //  to utilized with other resource files you will only need to
   //  use the relative path from the resource path.

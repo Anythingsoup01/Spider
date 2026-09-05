@@ -104,6 +104,31 @@ bool Server::AddRoute(const Request &request, const std::string_view &route,
   return true;
 }
 
+bool Server::AddRoute(const Request &request, const std::string_view &existing_route,
+                      const std::string_view &new_route) {
+  std::string old_stringToHash = RequestToString(request) + existing_route.data();
+  uint64_t old_hash = Util::GenerateFNVHash(old_stringToHash);
+
+  std::string stringToHash = RequestToString(request) + new_route.data();
+  uint64_t hash = Util::GenerateFNVHash(stringToHash);
+
+  if (!m_Routes.contains(old_hash) || m_Routes.contains(hash)) // Request+Route doesn't exist return false
+    return false;
+
+  const Route &route = m_Routes[old_hash];
+
+  Route rt = {
+    .RequestType = request,
+    .RouteString = new_route.data(),
+    .Method = route.Method,
+    .FilePath = route.FilePath,
+    .GenericMethod = route.GenericMethod
+  };
+
+  m_Routes.emplace(std::pair<uint64_t, Route>(hash, rt));
+  return true;
+}
+
 bool Server::HostFile(const std::filesystem::path &filePath, const std::string &routeOverride) {
   std::string route = "/" + filePath.generic_string();
   if (!routeOverride.empty()) {
